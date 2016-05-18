@@ -3,12 +3,12 @@
 
 PKG             := cegui
 $(PKG)_IGNORE   :=
-$(PKG)_VERSION  := 0.7.9
-$(PKG)_CHECKSUM := 7c3b264def08b46de749c2acaba363e907479d924612436f3bd09da2e474bb8c
-$(PKG)_SUBDIR   := CEGUI-$($(PKG)_VERSION)
-$(PKG)_FILE     := CEGUI-$($(PKG)_VERSION).tar.gz
-$(PKG)_URL      := http://$(SOURCEFORGE_MIRROR)/project/crayzedsgui/CEGUI%20Mk-2/$($(PKG)_VERSION)/$($(PKG)_FILE)?download
-$(PKG)_DEPS     := gcc expat freeglut freeimage freetype libxml2 pcre xerces
+$(PKG)_VERSION  := 0.8.7
+$(PKG)_CHECKSUM := b351e8957716d9c170612c13559e49530ef911ae4bac2feeb2dacd70b430e518
+$(PKG)_SUBDIR   := cegui-$($(PKG)_VERSION)
+$(PKG)_FILE     := cegui-$($(PKG)_VERSION).tar.bz2
+$(PKG)_URL      := https://bitbucket.org/cegui/cegui/downloads/$($(PKG)_FILE)
+$(PKG)_DEPS     := gcc expat freeglut freeimage freetype libxml2 pcre xerces glew
 
 define $(PKG)_UPDATE
     $(WGET) -q -O- 'https://bitbucket.org/cegui/cegui/downloads' | \
@@ -19,37 +19,31 @@ define $(PKG)_UPDATE
 endef
 
 define $(PKG)_BUILD
-    cd '$(1)' && ./configure \
-        --host='$(TARGET)' \
-        --disable-shared \
-        --prefix='$(PREFIX)/$(TARGET)' \
-        --enable-freetype \
-        --enable-pcre \
-        --enable-xerces-c \
-        --enable-libxml \
-        --enable-expat \
-        --disable-corona \
-        --disable-devil \
-        --enable-freeimage \
-        --disable-silly \
-        --enable-tga \
-        --disable-tinyxml \
-        --enable-stb \
-        --enable-opengl-renderer \
-        --disable-ogre-renderer \
-        --disable-irrlicht-renderer \
-        --disable-directfb-renderer \
-        --enable-null-renderer \
-        --disable-samples \
-        --disable-lua-module \
-        --disable-python-module \
-        PKG_CONFIG='$(TARGET)-pkg-config' \
-        CFLAGS="`$(TARGET)-pkg-config --cflags glut freeimage`" \
-        CXXFLAGS="`$(TARGET)-pkg-config --cflags glut freeimage`" \
-        LDFLAGS="`$(TARGET)-pkg-config --libs glut freeimage`"
-    $(MAKE) -C '$(1)' -j '$(JOBS)'
-    $(SED) -i 's/Cflags:\(.*\)/Cflags: \1 -DCEGUI_STATIC/' '$(1)/cegui/CEGUI.pc'
-    $(MAKE) -C '$(1)' -j '$(JOBS)' install
+    mkdir '$(1).build'
+    cd '$(1).build' && cmake \
+        -DCMAKE_TOOLCHAIN_FILE='$(CMAKE_TOOLCHAIN_FILE)' \
+        -DBUILD_SHARED_LIBS=$(if $(BUILD_STATIC),FALSE,TRUE) \
+        -DCEGUI_BUILD_XMLPARSER_XERCES=TRUE \
+        -DCEGUI_BUILD_XMLPARSER_LIBXML2=TRUE \
+        -DCEGUI_BUILD_XMLPARSER_EXPAT=TRUE \
+        -DCEGUI_BUILD_IMAGECODEC_CORONA=FALSE \
+        -DCEGUI_BUILD_IMAGECODEC_DEVIL=FALSE \
+        -DCEGUI_BUILD_IMAGECODEC_FREEIMAGE=TRUE \
+        -DCEGUI_BUILD_IMAGECODEC_SILLY=FALSE \
+        -DCEGUI_BUILD_IMAGECODEC_TGA=TRUE \
+        -DCEGUI_BUILD_XMLPARSER_TINYXML=FALSE \
+        -DCEGUI_BUILD_IMAGECODEC_STB=TRUE \
+        -DCEGUI_BUILD_RENDERER_OPENGL=TRUE \
+        -DCEGUI_BUILD_RENDERER_OPENGL3=TRUE \
+        -DCEGUI_BUILD_RENDERER_OGRE=FALSE \
+        -DCEGUI_BUILD_RENDERER_IRRLICHT=FALSE \
+        -DCEGUI_BUILD_RENDERER_DIRECTFB=FALSE \
+        -DCEGUI_BUILD_RENDERER_NULL=TRUE \
+        -DCEGUI_SAMPLES_ENABLED=FALSE \
+        -DCEGUI_BUILD_LUA_MODULE=FALSE \
+        -DCEGUI_BUILD_PYTHON_MODULES=FALSE \
+        '$(1)'
+    $(MAKE) -C '$(1).build' install
 
     '$(TARGET)-g++' \
         -W -Wall -ansi -pedantic \
